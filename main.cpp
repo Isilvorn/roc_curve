@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <list>
 #include <math.h>
@@ -12,12 +13,21 @@ void construct_roc(list<double*>&, list<double*>&);
 // deallocates memory
 void deallocate(list<double*>&);
 
+// definitions to make access to the roc array components more plain
+#define TPR    0
+#define FPR    1
+#define THRESH 2
+#define NTP    3
+#define NFP    4
+#define NTN    5
+#define NFN    6
+
 // function input to the list sort routine, sorting by the first element
 bool comp(const double *first, const double *second) 
 { if (first[0] > second[0]) return true; else return false; }
  
 int main(int argv, char **argc) {
-  list<double*>::iterator pit;
+  list<double*>::iterator it;
 
   cout << "Executing roc with command line arguments: ";
   for (int i=0; i<argv; i++)
@@ -29,14 +39,25 @@ int main(int argv, char **argc) {
   if (argv == 2) {
 	if (read_input(argc, probs)) {
 	  construct_roc(probs,roc);
-	  /*
-	  pit = probs.begin();
+	  
+	  it = roc.begin();
 	  int i=0;
-	  while (pit != probs.end()) { 
-		cout << i << ": " << (*pit)[0] << " " << (*pit)[1] << endl; 
-		pit++; i++; 
+	  cout << "     Threshold  TP    FP    TN    FN    TPR   FPR" << endl;
+	  cout << "     =========  ====  ====  ====  ====  ====  ====" << endl;
+	  while (it != roc.end()) { 
+		cout << setw(3) << i << ": " 
+			 << fixed << setprecision(2) 
+			 << setw(9) << (*it)[THRESH] << "  "
+			 << setprecision(0) 
+			 << setw(4) << (*it)[NTP] << "  " 
+			 << setw(4) << (*it)[NFP] << "  " 
+			 << setw(4) << (*it)[NTN] << "  " 
+			 << setw(4) << (*it)[NFN] << "  "
+			 << setprecision(2) 
+			 << setw(4) << (*it)[TPR] << "  " 
+			 << setw(4) << (*it)[FPR] << endl; 
+		it++; i++; 
 	  }
-	  */
 	}
   }
   else {
@@ -54,19 +75,58 @@ int main(int argv, char **argc) {
 */
 void construct_roc(list<double*> &input, list<double*> &output) {
   list<double*>::iterator it1, it2;
-  double *d;
-  int    nTP, nFP, nTN, nFN;
+  double *d, threshold;
+  int    nTP, nFP, nTN, nFN, nElem, i;
 
   // sorting the data in decreasing order by probability
   input.sort(comp);
-  // finding the number false and true negatives for each unique probability
+  // finding the number false and true negatives for each unique 
+  // probability in the vector
   it1 = input.begin();
+  threshold = -1.0;
+  nElem     = 0;
   while (it1 != input.end()) {
-	cout << (*it1)[0] << " " << (*it1)[1] << endl;
-	it1++;
-  }
+	threshold = (*it1)[0];
+	// counting the number of true/false positves/negatives at
+	// each unique threshold
+	nTP = nFP = nTN = nFN = 0.0;
+	it2 = input.begin();
+	i   = 0;
+	while (it2 != input.end()) {
+	  if (i <= nElem) {
+		if ((*it2)[1] == 1) nTP++;
+		else                nFP++;
+	  } // end if (*it2)[0]
+	  else {
+		if ((*it2)[1] == 1) nFN++;
+		else                nTN++;
+	  } // end else (*it2)[0]
+	  it2++; i++; // incrementing inner iterator
+	} // end while (it2)
+	// recording the TPR/FPR pair results
+	d = new double[7];
+	d[TPR]    = ((double)nTP)/(nTP+nFN);
+	d[FPR]    = ((double)nFP)/(nFP+nTN);
+	d[THRESH] = threshold;
+	d[NTP]    = nTP;
+	d[NFP]    = nFP;
+	d[NTN]    = nTN;
+	d[NFN]    = nFN;
+	output.push_front(d);
+	it1++; nElem++; // incrementing outer iterator
+  } // end while (it1)
 
-}
+	d = new double[7];
+	d[TPR]    = 0.0;
+	d[FPR]    = 0.0;
+	d[THRESH] = 1.0;
+	d[NTP]    = 0;
+	d[NFP]    = 0;
+	d[NTN]    = nTP+nTN;
+	d[NFN]    = nFP+nFN;
+	output.push_back(d);
+
+} // end construct_roc()
 
 /*
 ** The read_input() function reads the input file and stores the data in
