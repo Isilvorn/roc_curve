@@ -25,21 +25,23 @@ void deallocate(list<double*>&);
 // function input to the list sort routine, sorting by the first element
 bool comp(const double *first, const double *second) 
 { if (first[0] > second[0]) return true; else return false; }
- 
+
+// the main program takes the input file name from the command line 
 int main(int argv, char **argc) {
   list<double*>::iterator it;
 
   cout << "Executing roc with command line arguments: ";
   for (int i=0; i<argv; i++)
 	cout << argc[i] << " ";
-  cout << endl;
+  cout << endl << endl;
 
   list<double*> probs;
   list<double*> roc;
   if (argv == 2) {
-	if (read_input(argc, probs)) {
-	  construct_roc(probs,roc);
+	if (read_input(argc, probs, false)) { // reading the input
+	  construct_roc(probs,roc);    // constructing the roc
 	  
+	  // displaying the results
 	  it = roc.begin();
 	  int i=0;
 	  cout << "     Threshold  TP    FP    TN    FN    TPR   FPR" << endl;
@@ -57,13 +59,16 @@ int main(int argv, char **argc) {
 			 << setw(4) << (*it)[TPR] << "  " 
 			 << setw(4) << (*it)[FPR] << endl; 
 		it++; i++; 
-	  }
-	}
-  }
+	  } // end while (it)
+	} // end if (read_input)
+  } // end if (argv)
   else {
 	cout << "Usage:  ./roc [Input Vector]" << endl;
-  }
+  } // end else (argv)
 
+  cout << endl;
+
+  // deallocating dynamic memory
   deallocate(probs);
   deallocate(roc);
   return 0;
@@ -116,15 +121,16 @@ void construct_roc(list<double*> &input, list<double*> &output) {
 	it1++; nElem++; // incrementing outer iterator
   } // end while (it1)
 
-	d = new double[7];
-	d[TPR]    = 0.0;
-	d[FPR]    = 0.0;
-	d[THRESH] = 1.0;
-	d[NTP]    = 0;
-	d[NFP]    = 0;
-	d[NTN]    = nTP+nTN;
-	d[NFN]    = nFP+nFN;
-	output.push_back(d);
+  // the last entry is always with TPR=0.0 and FPR=0.0
+  d = new double[7];
+  d[TPR]    = 0.0;
+  d[FPR]    = 0.0;
+  d[THRESH] = 1.0;
+  d[NTP]    = 0;
+  d[NFP]    = 0;
+  d[NTN]    = nTP+nTN;
+  d[NFN]    = nFP+nFN;
+  output.push_back(d);
 
 } // end construct_roc()
 
@@ -148,25 +154,21 @@ bool read_input(char **argc, list<double*> &p, bool verbose) {
 	  infile >> d[0] >> d[1]; 
 	  if (verbose) cout << i << ": " << d[0] << " " << d[1] << endl;
 	  p.push_front(d); 
-	}
+	} // end for (i)
 
 	infile.close();
-  }
+  } // end if (infile.is_open())
   else { cerr << "Bad input file name." << endl; return false; }
   
   return true;
-}
+} // end read_input()
 
 /*
-** The deallocate() function deallocates any memory allocated for the input list
+** The deallocate() function deallocates any memory allocated for the 
+** input list
 */
 void deallocate(list<double*> &input) {
   list<double*>::iterator it;
-
   it = input.begin();
-  while (it != input.end()) {
-	delete *it;
-	it = input.erase(it);
-  }
-
-}
+  while (it != input.end()) { delete *it; it = input.erase(it); } 
+} // end deallocate()
