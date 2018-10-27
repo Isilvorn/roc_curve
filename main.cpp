@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <fstream>
 #include <list>
+#include <string>
 #include <math.h>
 
 using namespace std;
@@ -25,6 +26,10 @@ void deallocate(list<double*>&);
 // function input to the list sort routine, sorting by the first element
 bool comp(const double *first, const double *second) 
 { if (first[0] > second[0]) return true; else return false; }
+
+// outputs the FPR/TPR data in a format that will allow the custom html file
+// to display it as a graphic
+void outdata(list<double*>&,string);
 
 // the main program takes the input file name from the command line 
 int main(int argv, char **argc) {
@@ -60,6 +65,7 @@ int main(int argv, char **argc) {
 			 << setw(4) << (*it)[FPR] << endl; 
 		it++; i++; 
 	  } // end while (it)
+	  outdata(roc,"setdata.js");
 	} // end if (read_input)
   } // end if (argv)
   else {
@@ -162,6 +168,37 @@ bool read_input(char **argc, list<double*> &p, bool verbose) {
   
   return true;
 } // end read_input()
+
+/*
+** The outdata() function formats the roc data in a way that can be read
+** in by the custom html file.
+*/
+void outdata(list<double*> &roc, string fname) {
+  ofstream                outfile;   // output file
+  list<double*>::iterator it;        // iterator
+  double                  thr = 0.0; // threshold
+
+  outfile.open(fname);
+  if (outfile.is_open()) {
+	it = roc.begin();
+	int i=0;
+	outfile << "function setdata() {" << endl
+			<< "var inputvar =" << endl
+			<< "[ [ 1.000, 1.000, 1.000 ]," << endl
+			<< fixed << setprecision(3);
+	while (it != roc.end()) { 
+	  outfile << "  [ " << setw(5) << (*it)[FPR]    << ", "
+			            << setw(5) << (*it)[TPR]    << ", " 
+			            << setw(5) << (*it)[THRESH] << " ]," << endl;
+	  it++;
+	} // end while (it)
+	outfile << "  [ 0.000, 0.000, 1.000 ] ];" << endl;
+	outfile << "return inputvar;" << endl;
+	outfile << "}" << endl;
+	outfile.close();
+  } // end if (outfile)
+  
+}
 
 /*
 ** The deallocate() function deallocates any memory allocated for the 
